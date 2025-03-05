@@ -1,3 +1,17 @@
+import pandas as pd
+import streamlit as st
+
+# Load the CSV file
+@st.cache_data
+def load_data():
+    return pd.read_csv("Cleaned_FEU_Spot_Rate_Data.csv")
+
+# Read data
+df = load_data()
+
+# Display DataFrame (for testing)
+st.subheader("FEU Spot Rate Data Preview")
+st.dataframe(df.head())
 import streamlit as st
 import pandas as pd
 import plotly.express as px
