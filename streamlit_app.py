@@ -1,3 +1,13 @@
+import streamlit as st
+import pandas as pd
+
+# Test Reading the Data
+try:
+    df = pd.read_csv("Cleaned_FEU_Spot_Rate_Data.csv")
+    st.write("✅ Data loaded successfully!")
+    st.write(df.head())  # Show first few rows
+except Exception as e:
+    st.write("❌ Error loading data:", e)
 import pandas as pd
 import streamlit as st
 
