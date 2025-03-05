@@ -1,57 +1,54 @@
 import streamlit as st
 import pandas as pd
-from rapidfuzz import process
+from rapidfuzz import process  # Ensure this is installed in requirements.txt
 
-# Load data
+# --- PAGE CONFIGURATION --- (Must be the first Streamlit command)
+st.set_page_config(page_title="Container Atlas", layout="wide")
+
+# --- Load Data ---
 @st.cache_data
 def load_data():
-    df = pd.read_csv("Cleaned_FEU_Spot_Rate_Data.csv")
+    """Load and cache the dataset."""
+    df = pd.read_csv("Cleaned_FEU_Spot_Rate_Data.csv")  # Ensure this file exists in the repo
     return df
 
 df = load_data()
 
 # Extract unique origins and destinations
-unique_origins = df["Qualifier_Description"].unique().tolist()
-unique_destinations = df["Qualifier"].unique().tolist()
+unique_origins = df["Origin"].dropna().unique().tolist()
+unique_destinations = df["Destination"].dropna().unique().tolist()
 
-def get_best_match(query, choices):
-    matches = process.extract(query, choices, limit=5, score_cutoff=50)
-    return [match[0] for match in matches]
-
-# Streamlit App
-st.set_page_config(page_title="Container Atlas", layout="wide")
+# --- SIDEBAR NAVIGATION ---
 st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["My Dashboard", "Lane Dashboard", "Settings"])
+page = st.sidebar.radio("Go to", ["My Dashboard", "Lane Dashboard", "Lane Analyzer", "Settings"])
 
+# --- LANE DASHBOARD ---
 if page == "Lane Dashboard":
     st.title("Lane Dashboard")
+    st.write("Search and analyze specific trade lanes.")
+
+    # Search box for Origin
+    origin_input = st.text_input("Search for an Origin:")
+    suggested_origin, _ = process.extractOne(origin_input, unique_origins) if origin_input else (None, None)
     
-    # Search fields
-    origin_query = st.text_input("Search Origin:")
-    destination_query = st.text_input("Search Destination:")
+    # Search box for Destination
+    destination_input = st.text_input("Search for a Destination:")
+    suggested_destination, _ = process.extractOne(destination_input, unique_destinations) if destination_input else (None, None)
     
-    # Suggestions for origins
-    if origin_query:
-        suggested_origins = get_best_match(origin_query, unique_origins)
-        selected_origin = st.selectbox("Select Origin", suggested_origins, index=0 if suggested_origins else None)
+    if suggested_origin and suggested_destination:
+        st.write(f"Selected Lane: **{suggested_origin} → {suggested_destination}**")
+        filtered_df = df[(df["Origin"] == suggested_origin) & (df["Destination"] == suggested_destination)]
+        st.dataframe(filtered_df)
     else:
-        selected_origin = None
-    
-    # Suggestions for destinations
-    if destination_query:
-        suggested_destinations = get_best_match(destination_query, unique_destinations)
-        selected_destination = st.selectbox("Select Destination", suggested_destinations, index=0 if suggested_destinations else None)
-    else:
-        selected_destination = None
-    
-    # Filter data based on selection
-    if selected_origin and selected_destination:
-        filtered_df = df[(df["Qualifier_Description"] == selected_origin) & (df["Qualifier"] == selected_destination)]
-        
-        if not filtered_df.empty:
-            st.success("Data loaded successfully!")
-            st.dataframe(filtered_df)
-        else:
-            st.warning("No data found for the selected lane.")
+        st.write("Type to search for a valid Origin and Destination.")
+
+# --- DUMMY DATA CARDS ---
+    st.subheader("Additional Data Metrics (Dummy Data)")
+    col1, col2, col3 = st.columns(3)
+    col1.metric(label="Transit Time (Days)", value="35", delta="+2")
+    col2.metric(label="Rate Pressure", value="Stable", delta="-1%")
+    col3.metric(label="Rollover Index", value="12%", delta="+3%")
+
+st.write("\n\n")  # Spacing at the bottom
 
 
