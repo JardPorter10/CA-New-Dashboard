@@ -1,58 +1,71 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from fuzzywuzzy import process
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="Container Atlas", layout="wide")
-
-# Load Data
-def load_data():
-    file_path = "Cleaned_FEU_Spot_Rate_Data.csv"  # Update this to your actual file
-    df = pd.read_csv(file_path)
-    return df
-
-data = load_data()
-
-def get_closest_match(query, choices):
-    """Return the closest matching options for a given query."""
-    query = query.lower()
-    return [choice for choice in choices if query in choice.lower()]
 
 # --- SIDEBAR NAVIGATION ---
 st.sidebar.title("Navigation")
 page = st.sidebar.radio("Go to", ["My Dashboard", "Lane Dashboard", "Lane Analyzer", "Settings"])
 
-if page == "Lane Analyzer":
-    st.title("Lane Analyzer")
+# --- LOAD DATA ---
+data_path = "Cleaned_FEU_Spot_Rate_Data.csv"
+df = pd.read_csv(data_path)
+
+def get_closest_match(query, choices):
+    """Returns the best match for a query from a list of choices."""
+    match, score = process.extractOne(query, choices)
+    return match if score > 70 else None  # Only return matches above 70% confidence
+
+# --- LANE DASHBOARD ---
+if page == "Lane Dashboard":
+    st.title("🚢 Lane Dashboard")
     
-    # Extract unique origins and destinations from data
-    unique_origins = data["Qualifier_Description"].unique().tolist()
-    unique_destinations = data["Qualifier_Description"].unique().tolist()
+    # Get unique origin and destination options from the dataset
+    origins = df['Qualifier_Description'].unique().tolist()
+    destinations = df['Qualifier_Description'].unique().tolist()
     
-    col1, col2 = st.columns(2)
+    # Search fields for Origin and Destination
+    origin_input = st.text_input("Enter Origin Port", "")
+    destination_input = st.text_input("Enter Destination Port", "")
+    
+    # Suggest closest matches
+    origin_match = get_closest_match(origin_input, origins) if origin_input else None
+    destination_match = get_closest_match(destination_input, destinations) if destination_input else None
+    
+    # Display match suggestions
+    if origin_match:
+        st.write(f"Suggested Origin: **{origin_match}**")
+    if destination_match:
+        st.write(f"Suggested Destination: **{destination_match}**")
+    
+    # Search button
+    if st.button("Search"):
+        if origin_match and destination_match:
+            lane_data = df[(df['Qualifier_Description'] == origin_match) & (df['Qualifier_Description'] == destination_match)]
+            if not lane_data.empty:
+                st.success("✅ Data loaded successfully!")
+                st.write(lane_data)
+            else:
+                st.error("No data found for the selected lane.")
+        else:
+            st.error("Please enter valid Origin and Destination.")
+    
+    # Clear button
+    if st.button("Clear"):
+        st.experimental_rerun()
+
+# --- DUMMY DATA CARDS (TO BE REPLACED LATER) ---
+if page in ["My Dashboard", "Lane Dashboard"]:
+    col1, col2, col3 = st.columns(3)
+    
     with col1:
-        origin_query = st.text_input("Enter Origin Port:")
-        origin_suggestions = get_closest_match(origin_query, unique_origins) if origin_query else []
-        origin = st.selectbox("Select Origin", origin_suggestions, index=0 if origin_suggestions else None)
-    
+        st.metric(label="📦 Transit Time (Days)", value="25")
     with col2:
-        destination_query = st.text_input("Enter Destination Port:")
-        destination_suggestions = get_closest_match(destination_query, unique_destinations) if destination_query else []
-        destination = st.selectbox("Select Destination", destination_suggestions, index=0 if destination_suggestions else None)
-    
-    # Filter data based on selection
-    if origin and destination:
-        filtered_data = data[(data["Qualifier_Description"] == origin) & (data["Qualifier_Description"] == destination)]
-    else:
-        filtered_data = pd.DataFrame()
-    
-    if not filtered_data.empty:
-        st.success("Data loaded successfully!")
-        st.dataframe(filtered_data)
-        
-        # Plot spot rate data
-        fig = px.line(filtered_data, x="Date", y="Spot_Rate", title=f"FEU Spot Rates: {origin} to {destination}")
-        st.plotly_chart(fig)
-    else:
-        st.warning("No data found for the selected lane. Please refine your selection.")
+        st.metric(label="📈 Rate Pressure", value="Neutral")
+    with col3:
+        st.metric(label="🚢 Rollover Index", value="12%")
+
 
