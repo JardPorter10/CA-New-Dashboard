@@ -5,71 +5,53 @@ import matplotlib.pyplot as plt
 # --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="Container Atlas", layout="wide")
 
-# --- SIDEBAR ---
-st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["My Dashboard", "Lane Dashboard", "Analytics", "Settings"])
+# --- DROPDOWN MENU ---
+st.sidebar.title("My Lanes")
+trade_lanes = [
+    "All of my Lanes",
+    "China to North America West Coast",
+    "China to North America East Coast",
+    "Europe to North America East Coast",
+    "China to Mediterranean",
+    "North America East Coast to China",
+    "North America West Coast to China",
+]
+selected_lane = st.sidebar.selectbox("Select a Trade Lane:", trade_lanes)
 
-# --- HEADER ---
-st.title("📊 Container Atlas")
-st.write("Welcome! This is a simple dashboard framework.")
+# --- LAYOUT: SPLIT INTO TWO COLUMNS ---
+col1, col2 = st.columns([3, 1])  # Column 1 (chart) takes 3x more space than column 2 (cards)
 
-# --- LAYOUT: SECTIONS FOR EACH PAGE ---
-if page == "My Dashboard":
-    st.header("🏠 My Dashboard")
-    st.write("This is where items like my lanes, my network analytics, and other items will live.")
+# --- CHART SECTION ---
+with col1:
+    st.subheader("📊 FEU Spot Rate Change Over Time")
     
-    # Dropdown for Lane Selection
-    lanes = [
-        "All of my Lanes", 
-        "China to North America West Coast", 
-        "China to North America East Coast", 
-        "Europe to North America East Coast", 
-        "China to Mediterranean", 
-        "North America East Coast to China", 
-        "North America West Coast to China"
-    ]
-    selected_lane = st.selectbox("Select a Lane:", lanes)
+    # Fake data for now
+    dates = pd.date_range(start="2024-01-01", periods=12, freq="M")
+    values = [2500, 2600, 2450, 2700, 2900, 2800, 2750, 2950, 3100, 3000, 3200, 3300]
+    df = pd.DataFrame({"Date": dates, "Rate": values})
     
-    # Placeholder Data for FEU Spot Rate
-    df = pd.DataFrame({
-        "Date": pd.date_range(start="2024-01-01", periods=12, freq='M'),
-        "FEU Spot Rate": [2500, 2700, 2600, 2800, 2900, 3100, 3000, 3200, 3100, 3300, 3400, 3500]
-    })
-
-    # Create the Matplotlib chart
-    fig, ax = plt.subplots()
-    ax.plot(df["Date"], df["FEU Spot Rate"], marker="o", linestyle="-")
-    ax.set_title("FEU Spot Rate Change Over Time")
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.plot(df["Date"], df["Rate"], marker="o", linestyle="-", color="blue")
+    ax.set_title(f"Spot Rate Change for {selected_lane}")
     ax.set_xlabel("Date")
-    ax.set_ylabel("Rate (USD)")
-
-    # Display chart in Streamlit
+    ax.set_ylabel("Rate (USD per FEU)")
+    plt.xticks(rotation=45)
     st.pyplot(fig)
+
+# --- DATA CARDS SECTION ---
+with col2:
+    st.subheader("📌 Key Metrics")
     
     # Transit Time Card
-    st.metric(label="Transit Time (Days)", value="25 Days")
-    
-    # Rate Pressure Indicator
-    st.write("### Rate Pressure")
-    rate_pressure = "Slight Increase"
-    st.progress(66)  # Placeholder for diffusion scale
-    st.write(f"Current Rate Pressure: **{rate_pressure}**")
-    
-    # Rollover Index Card
-    st.metric(label="Rollover Index", value="12.5%")
+    st.markdown("**⏳ Transit Time:**")
+    st.info("35 Days")
 
-elif page == "Lane Dashboard":
-    st.header("📂 Lane Dashboard")
-    st.write("This is where users will be able to search lanes and receive back operational and analytical data.")
+    # Rate Pressure Card
+    st.markdown("**📉 Rate Pressure:**")
+    st.success("Slight Decrease")  # Change success to danger for increase
+    st.caption("Measures rate pressure over the next 14 days.")
 
-elif page == "Analytics":
-    st.header("📈 Analytics")
-    st.write("This section will have charts and insights to compare specific Ocean Data.")
-
-elif page == "Settings":
-    st.header("⚙️ Settings")
-    st.write("This is where users can customize their My Dashboard settings.")
-
-# --- FOOTER ---
-st.markdown("---")
-st.write("🚀 Built with Streamlit | *Prototype Version*")
+    # Rollover Index
+    st.markdown("**🚢 Rollover Index:**")
+    st.warning("22% of containers arrived on a different ship.")
+    st.caption("Percentage of containers arriving on a different ship than booked.")
