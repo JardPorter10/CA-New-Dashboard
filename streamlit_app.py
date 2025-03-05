@@ -5,70 +5,92 @@ import plotly.express as px
 # --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="Container Atlas", layout="wide")
 
-# --- Load Data Function (with caching for efficiency) ---
-@st.cache_data
-def load_data():
-    df = pd.read_csv("Cleaned_FEU_Spot_Rate_Data.csv")
-    df["Date"] = pd.to_datetime(df["Date"])  # Ensure Date column is datetime format
-    return df
-
-df = load_data()
-
 # --- SIDEBAR NAVIGATION ---
 st.sidebar.title("Navigation")
 page = st.sidebar.radio("Go to", ["My Dashboard", "Lane Dashboard", "Lane Analyzer", "Settings"])
+
+# --- LOOKBACK PERIOD OPTIONS ---
+lookback_options = {
+    "1 Month": 30,
+    "3 Months": 90,
+    "6 Months": 180,
+    "1 Year": 365,
+    "5 Years": 1825
+}
+
+# --- TRADE LANE MAPPINGS ---
+lane_options = {
+    "China / Southeast Asia": "C",
+    "North America West Coast": "NAW",
+    "North America East Coast": "NAE",
+    "North Europe": "NER",
+    "Mediterranean / North Africa": "MED",
+    "Europe": "E",
+    "South America West": "SAW",
+    "South America East": "SAE",
+    "Global": "GLBL"
+}
+
+# --- LOADING EXCEL DATA ---
+data_file = "Cleaned_FEU_Spot_Rate_Data.csv"
+data = pd.read_csv(data_file)
 
 # --- MY DASHBOARD PAGE ---
 if page == "My Dashboard":
     st.title("📊 My Data Dashboard")
     
-    # Dropdown for Lane Selection
-    trade_lanes = df["Qualifier_Description"].unique().tolist()
-    selected_lane = st.selectbox("Select Trade Lane", trade_lanes)
-
-    # Filter Data Based on Selection
-    filtered_data = df[df["Qualifier_Description"] == selected_lane]
-
-    # Plot with Plotly
-    fig = px.line(
-        filtered_data, 
-        x="Date", 
-        y="Spot_Rate", 
-        title=f"Spot Rate for {selected_lane}",
-        labels={"Spot_Rate": "FEU Spot Rate ($)", "Date": "Date"}
-    )
-    st.plotly_chart(fig)
+    # **Dropdown for Lane Selection**
+    selected_lane = st.selectbox("Select a Trade Lane", ["All of my Lanes"] + list(lane_options.keys()))
+    
+    # **Lookback Period Selection**
+    lookback = st.selectbox("Select Lookback Period", list(lookback_options.keys()))
+    lookback_days = lookback_options[lookback]
+    
+    # **Filter Data**
+    if selected_lane != "All of my Lanes":
+        lane_code = lane_options[selected_lane]
+        filtered_data = data[data["Qualifier"] == lane_code]
+    else:
+        filtered_data = data
+    
+    # **Plotly Chart**
+    fig = px.line(filtered_data, x="Date", y="Spot_Rate", color="Qualifier_Description", title="FEU Spot Rate Trends")
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # **Additional Data Cards**
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Transit Time", "35 Days")
+    col2.metric("Rate Pressure", "Slight Increase")
+    col3.metric("Rollover Index", "22% Delayed")
 
 # --- LANE DASHBOARD PAGE ---
-elif page == "Lane Dashboard":
-    st.title("🔍 Lane Dashboard")
-
-    # Search Inputs
-    origin = st.text_input("Enter Origin Port")
-    destination = st.text_input("Enter Destination Port")
-    search_button = st.button("Search")
-
-    if search_button:
-        # Generate Lane Code (Example: CNER = China to North Europe)
-        lane_code = origin[:3].upper() + destination[:3].upper()
-
-        if lane_code in df["Qualifier"].values:
-            filtered_lane = df[df["Qualifier"] == lane_code]
-            fig = px.line(
-                filtered_lane, 
-                x="Date", 
-                y="Spot_Rate", 
-                title=f"Spot Rate for {origin} to {destination}",
-                labels={"Spot_Rate": "FEU Spot Rate ($)", "Date": "Date"}
-            )
-            st.plotly_chart(fig)
-        else:
-            st.warning("Lane not found. Please check your input.")
-
-# --- SETTINGS PAGE ---
-elif page == "Settings":
-    st.title("⚙️ Settings")
-    st.write("This page will allow you to configure your dashboard settings in the future.")
-
-
-
+if page == "Lane Dashboard":
+    st.title("🛳 Lane Dashboard")
+    
+    # **Search Fields**
+    origin = st.text_input("Origin Port", "")
+    destination = st.text_input("Destination Port", "")
+    
+    # **Autocomplete Suggestions**
+    matching_origins = [port for port in lane_options.keys() if origin.lower() in port.lower()]
+    matching_destinations = [port for port in lane_options.keys() if destination.lower() in port.lower()]
+    
+    selected_origin = st.selectbox("Matching Origins", matching_origins if matching_origins else ["No Match"], index=0)
+    selected_destination = st.selectbox("Matching Destinations", matching_destinations if matching_destinations else ["No Match"], index=0)
+    
+    # **Search & Clear Buttons**
+    col1, col2 = st.columns(2)
+    if col1.button("Search"):
+        origin_code = lane_options.get(selected_origin, "")
+        destination_code = lane_options.get(selected_destination, "")
+        filtered_data = data[(data["Qualifier"] == f"{origin_code}{destination_code}")]
+    
+    if col2.button("Clear"):
+        st.experimental_rerun()
+    
+    # **Plotly Chart for Searched Lane**
+    if 'filtered_data' in locals() and not filtered_data.empty:
+        fig = px.line(filtered_data, x="Date", y="Spot_Rate", title=f"Spot Rate Trend: {selected_origin} to {selected_destination}")
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.write("No data available for the selected lane.")
