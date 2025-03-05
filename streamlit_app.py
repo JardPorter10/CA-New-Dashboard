@@ -1,54 +1,59 @@
 import streamlit as st
 import pandas as pd
-from rapidfuzz import process  # Ensure this is installed in requirements.txt
 
-# --- PAGE CONFIGURATION --- (Must be the first Streamlit command)
+# Load Data
+try:
+    df = pd.read_csv("Cleaned_FEU_Spot_Rate_Data.csv")
+    st.write("Dataset loaded successfully!")
+except Exception as e:
+    st.error(f"Error loading CSV: {e}")
+
+# Check Column Names
+st.write("Columns in dataset:", df.columns)
+
+# Ensure Correct Column Name
+expected_columns = ["Origin", "Destination", "Spot_Rate"]  # Adjust based on actual CSV
+missing_columns = [col for col in expected_columns if col not in df.columns]
+
+if missing_columns:
+    st.error(f"Missing expected columns: {missing_columns}")
+else:
+    # Proceed with filtering & dashboard logic
+    unique_origins = df["Origin"].dropna().unique().tolist()
+    st.write("Unique Origins:", unique_origins)
+
+# --- Streamlit App ---
 st.set_page_config(page_title="Container Atlas", layout="wide")
-
-# --- Load Data ---
-@st.cache_data
-def load_data():
-    """Load and cache the dataset."""
-    df = pd.read_csv("Cleaned_FEU_Spot_Rate_Data.csv")  # Ensure this file exists in the repo
-    return df
-
-df = load_data()
-
-# Extract unique origins and destinations
-unique_origins = df["Origin"].dropna().unique().tolist()
-unique_destinations = df["Destination"].dropna().unique().tolist()
-
-# --- SIDEBAR NAVIGATION ---
 st.sidebar.title("Navigation")
 page = st.sidebar.radio("Go to", ["My Dashboard", "Lane Dashboard", "Lane Analyzer", "Settings"])
 
-# --- LANE DASHBOARD ---
 if page == "Lane Dashboard":
     st.title("Lane Dashboard")
-    st.write("Search and analyze specific trade lanes.")
-
-    # Search box for Origin
-    origin_input = st.text_input("Search for an Origin:")
-    suggested_origin, _ = process.extractOne(origin_input, unique_origins) if origin_input else (None, None)
     
-    # Search box for Destination
-    destination_input = st.text_input("Search for a Destination:")
-    suggested_destination, _ = process.extractOne(destination_input, unique_destinations) if destination_input else (None, None)
+    # Lane selection
+    origin_input = st.text_input("Enter Origin:")
+    destination_input = st.text_input("Enter Destination:")
     
-    if suggested_origin and suggested_destination:
-        st.write(f"Selected Lane: **{suggested_origin} → {suggested_destination}**")
-        filtered_df = df[(df["Origin"] == suggested_origin) & (df["Destination"] == suggested_destination)]
+    # Suggest closest matches
+    filtered_df = df.copy()
+    if origin_input:
+        filtered_df = filtered_df[filtered_df["Origin"].str.contains(origin_input, case=False, na=False)]
+    if destination_input:
+        filtered_df = filtered_df[filtered_df["Destination"].str.contains(destination_input, case=False, na=False)]
+    
+    if not filtered_df.empty:
         st.dataframe(filtered_df)
     else:
-        st.write("Type to search for a valid Origin and Destination.")
+        st.warning("No matching lanes found. Try adjusting your search.")
 
-# --- DUMMY DATA CARDS ---
-    st.subheader("Additional Data Metrics (Dummy Data)")
-    col1, col2, col3 = st.columns(3)
-    col1.metric(label="Transit Time (Days)", value="35", delta="+2")
-    col2.metric(label="Rate Pressure", value="Stable", delta="-1%")
-    col3.metric(label="Rollover Index", value="12%", delta="+3%")
+elif page == "My Dashboard":
+    st.title("My Dashboard")
+    st.write("Welcome to My Dashboard!")
 
-st.write("\n\n")  # Spacing at the bottom
+elif page == "Lane Analyzer":
+    st.title("Lane Analyzer")
+    st.write("Analyze specific trade lanes here.")
 
-
+elif page == "Settings":
+    st.title("Settings")
+    st.write("Adjust application settings here.")
