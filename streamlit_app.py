@@ -38,7 +38,7 @@ st.markdown("""
         color: #ffffff;
         padding-bottom: 5px;
     }
-    .tag-box {
+    .tag {
         border: 1px solid #3B82F6;
         padding: 2px 4px;
         border-radius: 4px;
@@ -50,12 +50,25 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Dummy Data
+dates = pd.date_range('2024-07-07', periods=5, freq='W')
+df = pd.DataFrame({
+    'Date': dates,
+    'FEU Spot Rate': [3600, 3550, 3480, 3500, 3612],
+    'Booking Volume': [250, 270, 265, 280, 290],
+    'TEU Rejections': [5, 7, 6, 8, 5],
+    'TEU Capacity': [100, 110, 105, 120, 115],
+    'Transit Times': [38, 37, 39, 40, 38],
+    'Port Delays': [3, 2, 4, 3, 5],
+    'Rollover Index': [12, 14, 13, 15, 10]
+})
+
 # Sidebar Navigation
 with st.sidebar:
     st.selectbox("Frequency", ["Daily", "Weekly", "Monthly"], index=1)
 
     with st.expander("GLOBAL", expanded=True):
-        st.markdown('<div class="sidebar-card" style="background-color: #2563EB;">'
+        st.markdown('<div class="sidebar-card-global">'
                     '<span class="tag">GLBL</span><br>'
                     '<strong>Global Container Freight Index</strong><br>'
                     '$3,612 <span style="color: #22C55E;">+1%</span></div>', unsafe_allow_html=True)
