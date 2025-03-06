@@ -1,59 +1,73 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
-# Load Data
-try:
-    df = pd.read_csv("Cleaned_FEU_Spot_Rate_Data.csv")
-    st.write("Dataset loaded successfully!")
-except Exception as e:
-    st.error(f"Error loading CSV: {e}")
+# App Config
+st.set_page_config(page_title="FEU Spot Rates Dashboard", layout="wide")
 
-# Check Column Names
-st.write("Columns in dataset:", df.columns)
+# Sidebar Navigation
+with st.sidebar:
+    st.title("Navigation")
+    page = st.radio("Go to", ["My Dashboard", "Lane Dashboard", "Lane Analyzer", "Settings"])
 
-# Ensure Correct Column Name
-expected_columns = ["Origin", "Destination", "Spot_Rate"]  # Adjust based on actual CSV
-missing_columns = [col for col in expected_columns if col not in df.columns]
+    st.markdown("---")
 
-if missing_columns:
-    st.error(f"Missing expected columns: {missing_columns}")
-else:
-    # Proceed with filtering & dashboard logic
-    unique_origins = df["Origin"].dropna().unique().tolist()
-    st.write("Unique Origins:", unique_origins)
+    st.selectbox("Frequency", ["Daily", "Weekly", "Monthly"], index=1)
 
-# --- Streamlit App ---
-st.set_page_config(page_title="Container Atlas", layout="wide")
-st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["My Dashboard", "Lane Dashboard", "Lane Analyzer", "Settings"])
+    # Lane Search Functionality
+    st.markdown("### Lane Search")
+    with st.form(key="lane_search"):
+        origin = st.text_input("Origin Port", "Shanghai, China")
+        destination = st.text_input("Destination Port", "Houston, Texas, USA")
+        submitted = st.form_submit_button("Search")
 
-if page == "Lane Dashboard":
-    st.title("Lane Dashboard")
-    
-    # Lane selection
-    origin_input = st.text_input("Enter Origin:")
-    destination_input = st.text_input("Enter Destination:")
-    
-    # Suggest closest matches
-    filtered_df = df.copy()
-    if origin_input:
-        filtered_df = filtered_df[filtered_df["Origin"].str.contains(origin_input, case=False, na=False)]
-    if destination_input:
-        filtered_df = filtered_df[filtered_df["Destination"].str.contains(destination_input, case=False, na=False)]
-    
-    if not filtered_df.empty:
-        st.dataframe(filtered_df)
-    else:
-        st.warning("No matching lanes found. Try adjusting your search.")
+# Dummy Data
+dates = pd.date_range(start='2024-07-07', periods=5, freq='W')
+data = {
+    'Date': dates,
+    'FEU Spot Rate': [5200, 5100, 5000, 4950, 4800],
+    'Booking Volume': [250, 270, 265, 280, 290],
+    'TEU Rejections': [5, 7, 6, 8, 5],
+    'TEU Capacity': [100, 110, 105, 120, 115],
+    'Transit Time': [38, 37, 39, 40, 38],
+    'Port Delays': [3, 2, 4, 3, 5],
+    'Rollover Index': [12, 14, 13, 15, 10]
+}
+df = pd.DataFrame(data)
 
-elif page == "My Dashboard":
-    st.title("My Dashboard")
-    st.write("Welcome to My Dashboard!")
+# Main Dashboard
+st.title("FEU Spot Rates - Global")
 
-elif page == "Lane Analyzer":
-    st.title("Lane Analyzer")
-    st.write("Analyze specific trade lanes here.")
+# Dropdown for Data Type Selection
+data_option = st.selectbox("Chart Dataset", ["FEU Spot Rate", "Booking Volume", "TEU Rejections", "TEU Capacity", "Transit Time", "Port Delays", "Rollover Index"])
 
-elif page == "Settings":
-    st.title("Settings")
-    st.write("Adjust application settings here.")
+# Plot
+fig = px.line(df, x='Date', y=data_option, markers=True, title=f"{data_option} Over Time")
+st.plotly_chart(fig, use_container_width=True)
+
+# Summary Metrics
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric(label="Current FEU Spot Rate", value="$3,612.4", delta="+1%")
+
+with col2:
+    st.markdown("**Rate Pressure**")
+    st.progress(90)  # Sharp Increase indicator
+    st.caption("Sharp Increase")
+
+with col3:
+    st.metric(label="Transit Time", value="38 Days")
+
+# Top Regional Lanes Table
+st.subheader("Top Regional Lanes")
+lanes_data = pd.DataFrame({
+    'Abbreviation': ['CNSHA-USHOU', 'USORF-NLRTM'],
+    'Origin Port': ['Shanghai, CHN', 'Norfolk, VA, USA'],
+    'Destination Port': ['Houston, TX, USA', 'Rotterdam, NED'],
+    'FEU Spot Rate': ["$5,885", "$200"],
+    '% Change': ["+3%", "-1%"],
+    'Rate Pressure': ["Sharp Increase", "Neutral"],
+    'Transit Time': ["38 Days", "12 Days"]
+})
+st.dataframe(lanes_data, use_container_width=True, hide_index=True)
