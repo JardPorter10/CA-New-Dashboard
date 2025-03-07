@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 
 # Page Config
-st.set_page_config(page_title="FEU Spot Rates Dashboard", layout="wide")
+st.set_page_config(page_title="Lane Dashboard", layout="wide")
 
 # Custom CSS
 st.markdown("""
