@@ -74,7 +74,7 @@ with st.sidebar:
         st.selectbox("Pacific", ["Option 1", "Option 2"])
 
 # Page routing
-if page == "FEU Spot Rates Dashboard":
+if page == "Lane Dashboard":
     st.title("FEU Spot Rates - Global")
 
     # Dummy Data
