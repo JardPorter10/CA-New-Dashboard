@@ -47,7 +47,7 @@ st.markdown("""
 
 # Sidebar Navigation
 with st.sidebar:
-    page = st.selectbox("Navigation", ["FEU Spot Rates Dashboard", "Lane Dashboard", "Lane Analyzer", "Settings"], index=0)
+    page = st.selectbox("Navigation", ["Lane Dashboard", "Supply & Demand", "US Customs Dashboard", "Settings"], index=0)
 
     st.selectbox("Frequency", ["Daily", "Weekly", "Monthly"], index=1)
 
