@@ -8,7 +8,7 @@ st.set_page_config(page_title="Lane Dashboard", layout="wide")
 # Custom CSS
 st.markdown("""
     <style>
-    body, .stApp { background-color: black; color: white; }
+    body, .stApp { background-color: blue; color: white; }
     .metric-card {
         background-color: #1E1E1E;
         border-radius: 10px;
